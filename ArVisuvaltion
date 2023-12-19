@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  </head>
+  <body>
+    <div class="sketchfab-embed-wrapper" style="width: max-content">
+      <iframe
+        title="US Earnings Growth Model (S&P 500)"
+        frameborder="0"
+        allowfullscreen
+        mozallowfullscreen="true"
+        webkitallowfullscreen="true"
+        allow="autoplay; fullscreen; xr-spatial-tracking"
+        xr-spatial-tracking
+        execution-while-out-of-viewport
+        execution-while-not-rendered
+        web-share
+        src="https://sketchfab.com/models/fdc4987c2db14627b1b8d96693a9deed/embed?autostart=1"
+        style="width: 100vw; height: 100vh; border: none"
+      >
+      </iframe>
+
+      <!-- <p
+        style="
+          font-size: 13px;
+          font-weight: normal;
+          margin: 5px;
+          color: #4a4a4a;
+        "
+      >
+        <a
+          href="https://sketchfab.com/3d-models/us-earnings-growth-model-sp-500-fdc4987c2db14627b1b8d96693a9deed?utm_medium=embed&utm_campaign=share-popup&utm_content=fdc4987c2db14627b1b8d96693a9deed"
+          target="_blank"
+          rel="nofollow"
+          style="font-weight: bold; color: #1caad9"
+        >
+          US Earnings Growth Model (S&P 500)
+        </a>
+        by
+        <a
+          href="https://sketchfab.com/dataviewvr?utm_medium=embed&utm_campaign=share-popup&utm_content=fdc4987c2db14627b1b8d96693a9deed"
+          target="_blank"
+          rel="nofollow"
+          style="font-weight: bold; color: #1caad9"
+        >
+          D6 VR
+        </a>
+        on
+        <a
+          href="https://sketchfab.com?utm_medium=embed&utm_campaign=share-popup&utm_content=fdc4987c2db14627b1b8d96693a9deed"
+          target="_blank"
+          rel="nofollow"
+          style="font-weight: bold; color: #1caad9"
+          >Sketchfab</a
+        >
+      </p> -->
+    </div>
+    <!-- <a-scene>
+    <a-assets>
+      <a-asset-item id="retirementModel" src="path/to/retirement-model.gltf"></a-asset-item>
+    </a-assets>
+
+    <a-entity gltf-model="#retirementModel" scale="1 1 1" position="0 0 -5">
+      <a-plane position="0 1 -1" rotation="-90 0 0" width="2" height="2" color="#7BC8A4"></a-plane>
+      <a-text id="earningsText" position="-0.9 1 -1" align="center" width="1.8" value="Projected Earnings: $50,000/year"></a-text>
+    </a-entity>
+  </a-scene> -->
+
+    <script>
+      // Example JavaScript to update earnings dynamically
+      var earningsText = document.getElementById("earningsText");
+
+      // You can replace this function with actual calculations based on user input
+      function updateEarnings(amount) {
+        earningsText.setAttribute(
+          "value",
+          "Projected Earnings: $" + amount + "/year"
+        );
+      }
+
+      // Example: Update earnings after 3 seconds (simulate user input)
+      setTimeout(function () {
+        updateEarnings(75000); // Replace with actual calculated amount
+      }, 3000);
+    </script>
+  </body>
+</html>
