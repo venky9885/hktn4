@@ -8,74 +8,118 @@ import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import words
 from flask import Flask, request, jsonify
+from io import BytesIO
+import docx2txt
+import io
+import sys
+
+# from signature_detect.cropper import Cropper
+# from signature_detect.extractor import Extractor
+# from signature_detect.loader import Loader
+# from signature_detect.judger import Judger
 
 
 app = Flask(__name__)
 
-def has_signature(pixmap):
-    img_array = np.frombuffer(pixmap.samples, dtype=np.uint8).reshape((pixmap.h, pixmap.w, 3))
-    # pixmap.samples
-    # np.array(pixmap.getImage())
-    gray_img = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
-    _, thresholded_img = cv2.threshold(gray_img, 127, 255, cv2.THRESH_BINARY)
-    contours, _ = cv2.findContours(thresholded_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    return len(contours) > 0
 
-#!1signature pdf
 
-def has_signature_in_pdf(pdf_path,Docum):
+def has_signature(image,yesPdf):
+    # Convert the Pillow image to a NumPy array
+    if(yesPdf):
+        img_array = np.frombuffer(image.samples, dtype=np.uint8).reshape((image.h, image.w, 3))
+    else:
+        img_array = np.array(image)
+
+    if len(img_array.shape) == 3 and img_array.shape[2] == 3:
+        # Convert to grayscale only if the image is not already grayscale
+        gray_image = cv2.cvtColor(img_array, cv2.COLOR_BGR2GRAY)
+    else:
+        gray_image = img_array
+
+    blurred_image = cv2.GaussianBlur(gray_image, (5, 5), 0)
+
+    edges = cv2.Canny(blurred_image, 50, 150)
+    signature_contours, _ = cv2.findContours(edges.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    min_signature_contour_count = 4
+
+    has_signature = len(signature_contours) >= min_signature_contour_count
+
+    harris_corners = cv2.cornerHarris(blurred_image, 2, 3, 0.04)
+
+    threshold = 0.1 * harris_corners.max()
+    ridge_points = np.where(harris_corners > threshold)
+
+    min_ridge_point_count = 100
+
+    has_thumbprint = len(ridge_points[0]) >= min_ridge_point_count
+    print(len(signature_contours),has_signature ,len(ridge_points[0]),has_thumbprint,"hii")
+    if has_signature and has_thumbprint:
+        return "ST"
+    elif has_signature:
+        return "S"
+    elif has_thumbprint:
+        return "T"
+    else:
+        return "None"
+
+def has_signature_in_pdf(pdf_path, Docum):
     doc = Docum
-    # fitz.open(pdf_path)
+    result_list = []
+
     for page_num in range(doc.page_count):
         page = doc[page_num]
         pix = page.get_pixmap()
-        if has_signature(pix):
-            return True
-    return False
+        
+        result_list.append(has_signature(pix,True))
 
-#!2signature doc
-def has_signature_in_docx(docx_path,Docum):
+    return result_list
+
+def has_signature_in_docx(docx_path, Docum):
     doc = Docum
-    # Document(docx_path)
+    result_list = []
+
     for rel in doc.part.rels:
         if "image" in str(doc.part.rels[rel].target_ref):
             image_data = doc.part.rels[rel].target_part.blob
-            if has_signature(Image.open(io.BytesIO(image_data))):
-                return True
-    return False
+            result_list.append(has_signature(Image.open(io.BytesIO(image_data)),False))
 
+    return result_list
 
-def validateSign(document_path,Docum):
+def validateSign(document_path, Docum):
     if document_path.lower().endswith('.pdf'):
-        return has_signature_in_pdf(document_path,Docum)
+        return has_signature_in_pdf(document_path, Docum)
     elif document_path.lower().endswith('.docx'):
-        return has_signature_in_docx(document_path,Docum)
+        return has_signature_in_docx(document_path, Docum)
     else:
-        return False
+        return []
 
 #!3 check pg count and  min word count
 
 nltk.download('punkt')
 nltk.download('words')
 def is_valid_document(document_path,Docum):
-    min_word_count = 50
+    min_word_count = 5
+    print(1230,document_path,document_path.lower().endswith('.pdf'))
     if document_path.lower().endswith('.pdf'):
         doc = Docum
+        print(123,doc)
         # fitz.open(document_path)
-        if doc.page_count < 1:
+        if doc.page_count < 0:
             return False
+        print(1234,doc.page_count)
         for page_num in range(doc.page_count):
             page = doc[page_num]
             text = page.get_text()
 
             tokens = [word.lower() for word in word_tokenize(text) if word.isalpha()]
+            print(1235,tokens)
             if len(tokens) >= min_word_count:
                 return True
         return False
     elif document_path.lower().endswith('.docx'):
-        from docx import Document
 
-        doc = Document(document_path)
+        doc = Docum
         if len(doc.paragraphs) < 1:
             return False  
 
@@ -142,21 +186,21 @@ def validate_document():
     # Get the uploaded file from the request
     print("21112")
     uploaded_file = request.files['document']
-    keywords_to_check = ["Loan", "Request", "Withdrawal", "Spousal", "Consent"]
+    keywords_to_check = ["Loan","Loans", "Request", "Withdrawal", "Spousal", "Consent"]
 
     # Read the content of the file
     content = uploaded_file.read()
-
+    print(type(uploaded_file),"7895")
     # Check if the document is a PDF
     if uploaded_file.filename.lower().endswith('.pdf'):
         doc = fitz.open("pdf", content)
-        print(doc,"2111")
+        print(doc,"2111",doc.page_count)
         for page_num in range(doc.page_count):
             page = doc[page_num]
             text = page.get_text()
-            keywords_result = contains_keywords(text, keywords_to_check,doc)
+            keywords_result = contains_keywords(uploaded_file.filename, keywords_to_check,doc)
 
-            document_valid_result = is_valid_document(text,doc)
+            document_valid_result = is_valid_document(uploaded_file.filename,doc)
 
             signature_result = validateSign(uploaded_file.filename,doc)
 
@@ -168,6 +212,35 @@ def validate_document():
             }
 
             return jsonify(json_result)
+    elif uploaded_file.filename.lower().endswith('.docx'):
+        # dx = docx2txt.process(uploaded_file)
+        # doc = fitz.open("pdf", content)
+        doc = Document(io.BytesIO(content))
+        # doc =  fitz.open(stream=content, filetype="docx")
+        print(doc,"8555")
+        for page_num in range(len(doc.paragraphs)):
+            # page = doc[page_num]
+            text = doc.paragraphs[page_num]
+            keywords_result = contains_keywords(uploaded_file.filename, keywords_to_check,doc)
+            
+            document_valid_result = is_valid_document(uploaded_file.filename,doc)
+            print(document_valid_result ,"8785")
+            signature_result = validateSign(uploaded_file.filename,doc)
+
+            # Create JSON result
+            json_result = {
+                "keywords_valid": keywords_result,
+                "document_valid": document_valid_result,
+                "signature_result": signature_result
+            }
+
+            return jsonify(json_result)
+        else:
+            return jsonify({
+                "keywords_valid": False,
+                "document_valid": False,
+                "signature_result": False
+            })
 
 if __name__ == '__main__':
     app.run(debug=True)
